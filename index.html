@@ -17,6 +17,8 @@ td input{padding:6px;font-size:14px}td input.hours,td input.rate{width:56px}
 button{padding:10px 14px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:15px}
 button.del{background:none;color:#000;padding:4px}
 textarea{padding:8px;border:1px solid #ccc;border-radius:6px;font-size:16px;width:100%;box-sizing:border-box;font-family:inherit}
+.sums div{margin-top:6px}
+.opts{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
 .total{font-size:22px;margin-top:16px;font-weight:bold}
 .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 @media print{
@@ -44,6 +46,15 @@ textarea{padding:8px;border:1px solid #ccc;border-radius:6px;font-size:16px;widt
 </table>
 </div>
 
+<div class="opts noprint">
+<label>الخصم %: <input id="discount" type="number" min="0" max="100" value="0" style="width:80px"></label>
+<label>الضريبة %: <input id="tax" type="number" min="0" value="0" style="width:80px"></label>
+</div>
+<div class="sums">
+<div>المجموع الفرعي: <span id="subtotal">0</span></div>
+<div id="discRow" style="display:none">الخصم (<span id="discPct">0</span>%): <span id="discAmt">0</span></div>
+<div id="taxRow" style="display:none">الضريبة (<span id="taxPct">0</span>%): <span id="taxAmt">0</span></div>
+</div>
 <div class="total">الإجمالي: <span id="total">0</span></div>
 
 <label>ملاحظات / شروط الدفع:<br><textarea id="notes" rows="3" placeholder="مثال: الدفع 50% مقدماً والباقي عند التسليم"></textarea></label>
@@ -62,6 +73,8 @@ const client = document.getElementById('client');
 const currency = document.getElementById('currency');
 const num = document.getElementById('num');
 const notes = document.getElementById('notes');
+const discount = document.getElementById('discount');
+const tax = document.getElementById('tax');
 document.getElementById('date').textContent = new Date().toLocaleDateString('en-GB');
 
 function addRow(d) {
@@ -84,6 +97,8 @@ function save() {
     const data = {
       client: client.value,
       num: num.value,
+      discount: discount.value,
+      tax: tax.value,
       notes: notes.value,
       currency: currency.value,
       rows: [...rows.querySelectorAll('tr')].map(tr => ({
@@ -105,7 +120,21 @@ function update() {
     tr.querySelector('.line').textContent = line;
     total += line;
   });
-  totalEl.textContent = total + ' ' + currency.value;
+  const sub = total;
+  const d = Math.min(Math.max(parseFloat(discount.value) || 0, 0), 100);
+  const tx = Math.max(parseFloat(tax.value) || 0, 0);
+  const dAmt = sub * d / 100;
+  const tAmt = (sub - dAmt) * tx / 100;
+  const cur = ' ' + currency.value;
+  const f = n => Math.round(n * 100) / 100;
+  document.getElementById('subtotal').textContent = f(sub) + cur;
+  document.getElementById('discRow').style.display = d ? '' : 'none';
+  document.getElementById('discPct').textContent = d;
+  document.getElementById('discAmt').textContent = '-' + f(dAmt) + cur;
+  document.getElementById('taxRow').style.display = tx ? '' : 'none';
+  document.getElementById('taxPct').textContent = tx;
+  document.getElementById('taxAmt').textContent = '+' + f(tAmt) + cur;
+  totalEl.textContent = f(sub - dAmt + tAmt) + cur;
   save();
 }
 
@@ -115,6 +144,8 @@ function load() {
     if (d) {
       client.value = d.client || '';
       num.value = d.num || '';
+      discount.value = d.discount || 0;
+      tax.value = d.tax || 0;
       notes.value = d.notes || '';
       currency.value = d.currency || '$';
       (d.rows || []).forEach(r => addRow(r));
@@ -128,6 +159,8 @@ rows.addEventListener('input', update);
 client.addEventListener('input', update);
 currency.addEventListener('input', update);
 num.addEventListener('input', update);
+discount.addEventListener('input', update);
+tax.addEventListener('input', update);
 notes.addEventListener('input', update);
 rows.addEventListener('click', e => {
   if (e.target.classList.contains('del')) {
