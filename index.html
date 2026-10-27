@@ -16,13 +16,14 @@ th,td{padding:4px;font-size:14px;text-align:right;border-bottom:1px solid #e5e7e
 td input{padding:6px;font-size:14px}td input.hours,td input.rate{width:56px}
 button{padding:10px 14px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:15px}
 button.del{background:none;color:#000;padding:4px}
+textarea{padding:8px;border:1px solid #ccc;border-radius:6px;font-size:16px;width:100%;box-sizing:border-box;font-family:inherit}
 .total{font-size:22px;margin-top:16px;font-weight:bold}
 .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 @media print{
   body{background:#fff;padding:0}
   .card{box-shadow:none;max-width:none;padding:0}
   .noprint{display:none}
-  input{border:none;padding:0}
+  input,textarea{border:none;padding:0}input::placeholder,textarea::placeholder{color:transparent}
 }
 </style>
 </head>
@@ -30,6 +31,7 @@ button.del{background:none;color:#000;padding:4px}
 <div class="card">
 <h1>عرض سعر</h1>
 <p class="date" id="date"></p>
+<p><label>رقم العرض: <input id="num" placeholder="001" style="width:110px"></label></p>
 <label>اسم العميل:<br><input id="client" placeholder="اكتب اسم العميل"></label>
 
 <label>العملة: <input id="currency" value="$" style="width:90px"></label>
@@ -44,6 +46,7 @@ button.del{background:none;color:#000;padding:4px}
 
 <div class="total">الإجمالي: <span id="total">0</span></div>
 
+<label>ملاحظات / شروط الدفع:<br><textarea id="notes" rows="3" placeholder="مثال: الدفع 50% مقدماً والباقي عند التسليم"></textarea></label>
 <div class="actions noprint">
 <button id="add">+ إضافة خدمة</button>
 <button id="reset" style="background:#dc2626">🗑 عرض جديد</button>
@@ -57,6 +60,8 @@ const rows = document.getElementById('rows');
 const totalEl = document.getElementById('total');
 const client = document.getElementById('client');
 const currency = document.getElementById('currency');
+const num = document.getElementById('num');
+const notes = document.getElementById('notes');
 document.getElementById('date').textContent = new Date().toLocaleDateString('en-GB');
 
 function addRow(d) {
@@ -78,6 +83,8 @@ function save() {
   try {
     const data = {
       client: client.value,
+      num: num.value,
+      notes: notes.value,
       currency: currency.value,
       rows: [...rows.querySelectorAll('tr')].map(tr => ({
         name: tr.querySelector('.name').value,
@@ -107,6 +114,8 @@ function load() {
     const d = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (d) {
       client.value = d.client || '';
+      num.value = d.num || '';
+      notes.value = d.notes || '';
       currency.value = d.currency || '$';
       (d.rows || []).forEach(r => addRow(r));
     }
@@ -118,6 +127,8 @@ function load() {
 rows.addEventListener('input', update);
 client.addEventListener('input', update);
 currency.addEventListener('input', update);
+num.addEventListener('input', update);
+notes.addEventListener('input', update);
 rows.addEventListener('click', e => {
   if (e.target.classList.contains('del')) {
     e.target.closest('tr').remove();
